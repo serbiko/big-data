@@ -2,9 +2,11 @@ from botbuilder.core import MessageFactory, UserState
 from botbuilder.dialogs import ComponentDialog, WaterfallDialog, WaterfallStepContext
 from botbuilder.dialogs.prompts import ChoicePrompt, PromptOptions
 from botbuilder.dialogs.choices import Choice
-from dialogs.consultar_matricula import ConsultarMatriculaDialog
-from dialogs.enturmar_aluno import EnturmarAlunoDialog
-from dialogs.quadro_horario import QuadroHorarioDialog
+from dialogs.buscar_voo import BuscarVooDialog
+from dialogs.buscar_hotel import BuscarHotelDialog   
+from dialogs.consultar_reserva import ConsultarReservaDialog
+from dialogs.cancelar_reserva import CancelarReservaDialog
+from dialogs.status_reserva import StatusReservaDialog
 
 
 class MainDialog(ComponentDialog):
@@ -12,63 +14,68 @@ class MainDialog(ComponentDialog):
     def __init__(self, user_state: UserState):
         super(MainDialog, self).__init__("MainDialog")
         
-        #Guarda na memoria aonde o usuário parou no dialogo
         self.user_state = user_state
         
-        #Prompt para escolher as opções de atendimento
+        # prompt para o menu de opções
         self.add_dialog(ChoicePrompt(ChoicePrompt.__name__))
+
+        # adicionando todos os diálogos disponíveis
+        self.add_dialog(BuscarVooDialog(self.user_state))
+        self.add_dialog(BuscarHotelDialog(self.user_state))
+        self.add_dialog(ConsultarReservaDialog(self.user_state))
+        self.add_dialog(CancelarReservaDialog(self.user_state))
+        self.add_dialog(StatusReservaDialog(self.user_state))
         
-        #Area de Atendimento de Consultar Matricula
-        self.add_dialog(ConsultarMatriculaDialog(self.user_state))
-        
-        #Area de Atendimento de Enturmar Aluno
-        self.add_dialog(EnturmarAlunoDialog(self.user_state))
-        
-        #Area de Atendimento de Quadro de Horario
-        self.add_dialog(QuadroHorarioDialog(self.user_state))
-        
-        
-        
-        #Conversação Sequencial (Steps)        
+        # fluxo do diálogo principal
         self.add_dialog(
             WaterfallDialog(
                 "MainDialog",
-                [
-                    self.prompt_option_step,
-                    self.process_option_step
-                ]
+                [self.prompt_option_step, self.process_option_step]
             )
         )
         
         self.initial_dialog_id = "MainDialog"
     
     async def prompt_option_step(self, step_context: WaterfallStepContext):
+        """
+        Mostra as opções do menu principal para o usuário escolher.
+        """
         return await step_context.prompt(
             ChoicePrompt.__name__,
             PromptOptions(
                 prompt=MessageFactory.text("Escolha a opção desejada:"),
                 choices=[
-                    Choice("Consultar Matricula"),
-                    Choice("Enturmar Aluno"),
-                    Choice("Quadro de Horario"),
+                    Choice("Buscar Voo"),
+                    Choice("Buscar Hotel"),
+                    Choice("Consultar Reserva"),
+                    Choice("Cancelar Reserva"),
+                    Choice("Status da Reserva"),
                     Choice("Ajuda")
                 ]
             )
         )
+
     async def process_option_step(self, step_context: WaterfallStepContext):
-        #Captura o que o usuário escolheu de opcao
+        """
+        Processa a escolha do usuário e inicia o diálogo correspondente.
+        """
         option = step_context.result.value
         
-        if (option == "Consultar Matricula"):
-            return await step_context.begin_dialog("ConsultarMatriculaDialog")
-        elif (option == "Enturmar Aluno"):
-            return await step_context.begin_dialog("EnturmarAlunoDialog")
-        elif (option == "Quadro de Horario"):
-            return await step_context.begin_dialog("QuadroHorarioDialog")
-        elif (option == "Ajuda"):
+        if option == "Buscar Voo":
+            return await step_context.begin_dialog("BuscarVooDialog")
+        elif option == "Buscar Hotel":
+            return await step_context.begin_dialog("BuscarHotelDialog")
+        elif option == "Consultar Reserva":
+            return await step_context.begin_dialog("ConsultarReservaDialog")
+        elif option == "Cancelar Reserva":
+            return await step_context.begin_dialog("CancelarReservaDialog")
+        elif option == "Status da Reserva":
+            return await step_context.begin_dialog("StatusReservaDialog")
+        elif option == "Ajuda":
             return await step_context.context.send_activity(
-                    MessageFactory.text(
-                        "Voce escolheu a opção Ajuda"
-                    )
+                MessageFactory.text(
+                    "Posso ajudar você a buscar voos, hotéis e gerenciar reservas (consultar, cancelar e ver status)."
                 )
+            )
+        
         return await step_context.end_dialog()
